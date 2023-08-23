@@ -7,6 +7,6 @@ __global__ void hello_world() {
 int main() {
     printf("Hello from CPU\n");
     hello_world<<<1,10>>>();
-    cudaDeviceReset();
+    cudaDeviceSynchronize();
     return 0;
 }
