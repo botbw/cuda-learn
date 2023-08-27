@@ -63,10 +63,11 @@ __global__ void reduceNeightboredLess(int *g_idata, int *g_odata, uint sz) {
     int *idata = g_idata + blockIdx.x * blockDim.x;
     for (int stride = 1; stride < blockDim.x; stride *= 2)
     {
-        if ((tid * 2) % (stride * 2) == 0)
-        {
-            idata[tid] += idata[tid + stride];
-        }
+        int id = tid * 2 * stride;
+        if (id < blockDim.x)
+		{
+			idata[id] += idata[id + stride];
+		}
         __syncthreads();
     }
     if (tid == 0)
