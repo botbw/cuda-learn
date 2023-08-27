@@ -56,6 +56,23 @@ __global__ void reduceNeighbored(int *g_idata, int *g_odata, uint sz)
         g_odata[blockIdx.x] = idata[0];
 }
 
+__global__ void reduceNeightboredLess(int *g_idata, int *g_odata, uint sz) {
+    uint tid = threadIdx.x;
+    uint idx = blockIdx.x * blockDim.x + tid;
+    if(idx >= sz) return;
+    int *idata = g_idata + blockIdx.x * blockDim.x;
+    for (int stride = 1; stride < blockDim.x; stride *= 2)
+    {
+        if ((tid * 2) % (stride * 2) == 0)
+        {
+            idata[tid] += idata[tid + stride];
+        }
+        __syncthreads();
+    }
+    if (tid == 0)
+        g_odata[blockIdx.x] = idata[0];
+}
+
 __global__ void warmup(int *g_idata, int *g_odata, uint sz)
 {
     uint tid = threadIdx.x;
