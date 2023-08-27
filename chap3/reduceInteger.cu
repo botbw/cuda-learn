@@ -146,6 +146,7 @@ int main(int argc, char **argv)
     cudaDeviceSynchronize();
     iElaps = seconds() - iStart;
     cudaMemcpy(h_odata, d_odata, grid.x * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
     gpu_sum = 0;
     for (int i = 0; i < grid.x; i++)
         gpu_sum += h_odata[i];
@@ -159,6 +160,7 @@ int main(int argc, char **argv)
     cudaDeviceSynchronize();
     iElaps = seconds() - iStart;
     cudaMemcpy(h_odata, d_odata, grid.x * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
     gpu_sum = 0;
     for (int i = 0; i < grid.x; i++)
         gpu_sum += h_odata[i];
