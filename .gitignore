@@ -1,2 +1,4 @@
 # binary
-a.out
+*.out
+*.err
+
