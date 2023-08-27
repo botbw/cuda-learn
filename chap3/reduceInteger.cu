@@ -1,17 +1,78 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
+#include <sys/time.h>
 
-// @botbw TODO: implement this function
-__global__ void warmup() {
+typedef unsigned int uint;
 
+double seconds()
+{
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    return ((double)tp.tv_sec + (double)tp.tv_usec * 1e-6);
 }
-// @botbw TODO: implement this function
-__global__ void reduceNeighbored() {
 
+int recursiveReduce(int *data, int const size)
+{
+    // terminate check
+    if (size == 1)
+        return data[0];
+    // renew the stride
+    int const stride = size / 2;
+    if (size % 2 == 1)
+    {
+        for (int i = 0; i < stride; i++)
+        {
+            data[i] += data[i + stride];
+        }
+        data[0] += data[size - 1];
+    }
+    else
+    {
+        for (int i = 0; i < stride; i++)
+        {
+            data[i] += data[i + stride];
+        }
+    }
+    // call
+    return recursiveReduce(data, stride);
 }
-// @botbw TODO: implement this function
-int seconds() {
 
+__global__ void reduceNeighbored(int *g_idata, int *g_odata, uint sz)
+{
+    uint tid = threadIdx.x;
+    uint i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= sz)
+        return;
+    int *idata = g_idata + blockIdx.x * blockDim.x;
+    for (int stride = 1; stride < blockDim.x; stride *= 2)
+    {
+        if (tid % (stride * 2) == 0)
+        {
+            idata[tid] += idata[tid + stride];
+        }
+        __syncthreads();
+    }
+    if (tid == 0)
+        g_odata[blockIdx.x] = idata[0];
+}
+
+__global__ void warmup(int *g_idata, int *g_odata, uint sz)
+{
+    uint tid = threadIdx.x;
+    uint i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= sz)
+        return;
+    int *idata = g_idata + blockIdx.x * blockDim.x;
+    for (int stride = 1; stride < blockDim.x; stride *= 2)
+    {
+        if (tid % (stride * 2) == 0)
+        {
+            idata[tid] += idata[tid + stride];
+        }
+        __syncthreads();
+    }
+    if (tid == 0)
+        g_odata[blockIdx.x] = idata[0];
 }
 
 int main(int argc, char **argv)
@@ -45,7 +106,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < size; i++)
     {
         // mask off high 2 bytes to force max number to 255
-        h_idata[i] = (int)(rand() & 0xFF);
+        h_idata[i] = 1;
     }
     memcpy(tmp, h_idata, bytes);
     size_t iStart, iElaps;
@@ -86,14 +147,6 @@ int main(int argc, char **argv)
         gpu_sum += h_odata[i];
     printf("gpu Neighbored elapsed %d ms gpu_sum: %d <<<grid %d block %d>>>\n",
            iElaps, gpu_sum, grid.x, block.x);
-    cudaDeviceSynchronize();
-    iElaps = seconds() - iStart;
-    cudaMemcpy(h_odata, d_odata, grid.x / 8 * sizeof(int), cudaMemcpyDeviceToHost);
-    gpu_sum = 0;
-    for (int i = 0; i < grid.x / 8; i++)
-        gpu_sum += h_odata[i];
-    printf("gpu Cmptnroll elapsed %d ms gpu_sum: %d <<<grid %d block %d>>>\n",
-           iElaps, gpu_sum, grid.x / 8, block.x);
     /// free host memory
     free(h_idata);
     free(h_odata);
