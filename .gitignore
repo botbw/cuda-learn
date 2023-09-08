@@ -2,3 +2,5 @@
 *.out
 *.err
 
+# pdf
+*.pdf
