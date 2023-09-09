@@ -16,7 +16,7 @@
 }
 
 #include <sys/time.h>
-double seconds()
+inline double seconds()
 {
   struct timeval tp;
   gettimeofday(&tp,NULL);
